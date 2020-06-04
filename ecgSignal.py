@@ -5,6 +5,7 @@ import scipy.io as sio
 import wfdb
 import subprocess
 import scipy.signal as signal
+import statistics as st
 
 # plt.switch_backend('MacOSX')
 
@@ -58,7 +59,7 @@ def readAnnotation(name):
     return Q_ini_est, T_end_est, R_est, anntype, ann, R_est_ann
 
 
-def computeQTtimes(anntype, ann, R, tm):
+def computeQTtimes(anntype, ann, R, tm, R_est):
     rr_qt_matrix = np.zeros([len(R),4],dtype=int)
     rr_qt_index = -1
 
@@ -103,10 +104,14 @@ def computeQTtimes(anntype, ann, R, tm):
 
         qtc_times = np.divide(rr_qt_times[:,1],np.power(rr_qt_times[:,0], 1/3))
         qtc = np.mean(qtc_times)
+
+        FC = st.median(60/np.diff(tm[R_est]))
+
     else:
         qtc = -3
+        FC = -3
 
-    return qtc
+    return qtc, FC
 
 
 def ECG_signal2QRS(ecg, Ts, draw=False):
@@ -139,13 +144,15 @@ def ECG_signal2QRS(ecg, Ts, draw=False):
                 plotEstimation(ecg, tm, Q, T, R)
 
             # CALCULO DEL TIEMPO QT
-            qtc = computeQTtimes(anntype, ann, R_ann, tm)
+            qtc, FC = computeQTtimes(anntype, ann, R_ann, tm, R)
         except:
             qtc = -1
+            FC = -1
     else:
         qtc = -2
+        FC = -2
 
-    return qtc
+    return qtc, FC
 
 
 # MAIN FUNCTION
@@ -164,8 +171,8 @@ if __name__ == "__main__":
         Ts = mat['Ts'][0,0]
 
         # FUNCION PRINCIPAL
-        value = ECG_signal2QRS(ecg, Ts, draw=False)
+        qtc,FC = ECG_signal2QRS(ecg, Ts, draw=False)
 
         # print('Valor estimado: ' + str(value))
 
-        print(file + ' ' + str(value))
+        print(file + ' ' + str(qtc) + ' ' + str(FC))
